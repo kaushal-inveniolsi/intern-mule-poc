@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+  <orders>
+    <orderId>AB123</orderId>
+    <processingDate>061222</processingDate>
+    <processingTime>1237</processingTime>
+    <noOfRecords>2</noOfRecords>
+    <records>
+      <name>Suman</name>
+      <contactNo>8927383930</contactNo>
+      <emailId>suman@gmail.com</emailId>
+    </records>
+    <records>
+      <name>Kaushal Singh</name>
+      <contactNo>9876583839</contactNo>
+      <emailId>kaushalsingh@inveniolsi.com</emailId>
+    </records>
+  </orders>
