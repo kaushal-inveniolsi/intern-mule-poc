@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<sftp:config name="SFTP_Config" doc:name="SFTP Config" doc:id="d4685e1b-436b-42ba-a947-1814524bb8e7" >
+		<sftp:connection host="192.168.4.138" username="${secure::sftp.username}" password="${secure::sftp.password}" />
+	</sftp:config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="f69ed3aa-ce57-4b9e-984f-5358105eafb0" file="property.yaml" key="mulepocInvenio12" />
+	<flow name="hashmap-json-apiFlow" doc:id="b81d3d71-5bce-40eb-a593-a7d25e4b95fc" >
+		<scheduler doc:name="5min-scheduler" doc:id="2b65c8c0-846a-4bea-bbb6-7235c9fdb122" >
+			<scheduling-strategy >
+				<cron expression="0 */5 * ? * *" timeZone="UTC +5:30" />
+			</scheduling-strategy>
+		</scheduler>
+		<logger level="INFO" doc:name="start-log" doc:id="c6ee0cb4-bbfc-44dc-9d1a-47e0b33c8486" message="started"/>
+		<java:invoke-static doc:name="Java POC-1" doc:id="481b7780-a667-4beb-81f0-f15cf047c402" class="com.training.MainApp" method="test(java.lang.String)">
+			<java:args ><![CDATA[#[{
+	"filename" : "test"
+}]]]></java:args>
+		</java:invoke-static>
+		<logger level="INFO" doc:name="output-hashmap" doc:id="608edef2-2fd6-4192-86b9-52c0fc0de554" message="#[payload]" />
+		<ee:transform doc:name="converting-to-json" doc:id="3216b63a-0215-4ad3-b9e9-f762fff2943a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="output-json" doc:id="c1425209-b15e-46a8-add5-9022fc1a2869" message="#[payload]"/>
+		<sftp:write doc:name="write-to-sftp" doc:id="16199b49-184d-4d2b-aeac-bf5001b8c36b" path='#["/orders/" ++ "POC8-"++(now() as String{format: "yyyyMMdd:hhmmssSSS"})++".json"]' config-ref="SFTP_Config"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="1144849e-c17b-42db-b08f-95684f5d5bad" >
+				<ee:transform doc:name="error" doc:id="4420e6cd-2814-4132-8e07-d78b079e58c2" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Error": error.cause.message
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
