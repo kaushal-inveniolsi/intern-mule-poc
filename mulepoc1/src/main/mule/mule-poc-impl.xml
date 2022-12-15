@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="f1ffce7c-c91d-495b-8832-c1ea188d1b2c" />
+	<flow name="get-path-flow" doc:id="8f35295d-76e5-4c26-8dbf-7eaf166f50c0" >
+		<logger level="INFO" doc:name="entry-log" doc:id="c49fabdc-e615-449e-89c3-e6c37a3bb7e0" message="Get Flow Started"/>
+		<ee:transform doc:name="response-tranformation">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  uniqueId: attributes.headers.vendorName ++ " - " ++ uuid(),
+  currentDate: (now() >> "IST") as String {format: "dd-MM-uuuu hh:mm a"},
+  status: "Success"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<logger level="INFO" doc:name="end-log" doc:id="d342007d-7844-4ddd-a0b2-5cbc70123bfb" message="Get flow completed successfully"/>
+
+	</flow>
+	<flow name="post-path-flow" doc:id="43ff4546-ab09-4c87-bca6-9d9f020228de" >
+		<logger level="INFO" doc:name="entry-log" doc:id="606ec355-6e61-4568-8548-c07e5a6c4960" message="Post flow started"/>
+		<choice doc:name="Choice" doc:id="2d737f0e-4d7f-4f01-a241-9cd14cc77564" >
+			<when expression="#[payload.orders.noOfRecords as Number == sizeOf(payload.orders.*records)]">
+				<ee:transform doc:name="response-transformation" doc:id="6da49b2f-3038-47b6-bcd8-22f1655e37de">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload.orders.*records map {
+    "order-id": payload.orders.orderId,
+    "user-name": upper($.name),
+    "phone-number": "+91 " ++ $.contactNo,
+    "mail": $.emailId
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger level="INFO" doc:name="end-log" doc:id="b551d8c6-e51f-438a-a6fb-6076ad784bc9" message="Post flow completd successfully" />
+			</when>
+			<otherwise >
+				<ee:transform doc:name="error-response" doc:id="f62190cc-8366-46e9-a3a8-000a0b08a7a8" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorMessage" : "The no. of record count is not same as records in array",
+  "status": "Failed"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
